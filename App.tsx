@@ -71,7 +71,7 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  // 增加初始值读取
+  
   const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>(() => localStorage.getItem('preferred_voice') || '');
 
   // 初始化加载
@@ -82,7 +82,6 @@ const App: React.FC = () => {
       const chineseVoices = v.filter(voice => voice.lang.includes('zh'));
       setVoices(chineseVoices);
       
-      // 修复闭包 Bug：使用 localStorage 判断是否已有用户选择，避免反复重置
       const savedVoice = localStorage.getItem('preferred_voice');
       if (chineseVoices.length > 0 && !savedVoice) {
         const defaultVoice = chineseVoices[0].voiceURI;
@@ -118,7 +117,6 @@ const App: React.FC = () => {
     setGameState('start');
   };
 
-  // 后台图片同步任务
   const syncImages = async (words: WordItem[]) => {
     setSyncProgress({ current: 0, total: words.length });
     for (let i = 0; i < words.length; i++) {
@@ -130,7 +128,7 @@ const App: React.FC = () => {
           const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: {
-              parts: [{ text: `A vibrant, clear, child-friendly cartoon sticker illustration of ${wordObj.meaning}, simple white background, 3D style, high quality.` }],
+              parts: [{ text: `A vibrant, clear, child-friendly cartoon sticker illustration of ${wordObj.meaning}, simple white background, no text.` }],
             },
             config: { imageConfig: { aspectRatio: "1:1" } }
           });
@@ -153,7 +151,7 @@ const App: React.FC = () => {
     setIsGenerating(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-      const prompt = `你是一位小学语文教师。请为${grade}年级学生生成一个包含50组易混淆汉字的词库JSON，请基于人教版小学语文教材。要求：1. 针对该年级的识字水平。2. 包含字、拼音、词组(context)、中文描述以及2个形近或音近的干扰项。3. 核心约束：词组(context)必须具有排他性。严禁对“他、她、它”或同音字使用“们”、“的”等通用后缀（如禁止使用“她们”作为“她”的词组）。必须使用能体现字义核心属性的限定性描述，确保学生能根据词组唯一确定目标字（例如：“她”使用“女生的”，“它”使用“小动物的”）。4. 同时提供干扰项的简单词组说明（存放在 distractorItems 数组中，每个元素包含 char 和 info 字段）。`;
+      const prompt = `你是一位小学语文教师。请为${grade}年级学生生成一个包含50组易混淆汉字的词库JSON，请基于人教版小学语文教材。要求：1. 针对该年级的识字水平。2. 包含字、拼音、词组、中文描述以及2个形近或音近的干扰项。3. 同时提供干扰项的简单词组说明（存放在 distractorItems 数组中，每个元素包含 char 和 info 字段）。`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -224,13 +222,22 @@ const App: React.FC = () => {
   };
 
   const playInstruction = (textToSay: string) => {
-    window.speechSynthesis.cancel();
+    const synth = window.speechSynthesis;
+    synth.cancel(); // 停止当前播放
+
     const utterance = new SpeechSynthesisUtterance(textToSay);
     utterance.lang = 'zh-CN';
     utterance.rate = 0.9;
-    const voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+    
+    // 关键修复：直接从浏览器获取最新的语音列表，避免 State 引用失效
+    const currentVoices = synth.getVoices();
+    const voice = currentVoices.find(v => v.voiceURI === selectedVoiceURI) || 
+                  currentVoices.find(v => v.lang.includes('zh'));
+    
     if (voice) utterance.voice = voice;
-    window.speechSynthesis.speak(utterance);
+    
+    // 关键修复：添加微量延迟，确保引擎在 cancel 后能正确接收新的 speak 指令
+    setTimeout(() => synth.speak(utterance), 50);
   };
 
   const generateVisualFeedback = async (wordObj: WordItem) => {
@@ -274,7 +281,7 @@ const App: React.FC = () => {
     setGeneratedImg(null);
     setGameState('playing');
     playInstruction(`请找出：${wordObj.context}的${wordObj.word}`);
-  }, [bankData, selectedVoiceURI]); // 增加 selectedVoiceURI 依赖以确保播放最新音色
+  }, [bankData, selectedVoiceURI]);
 
   const handleSelection = async (selected: string) => {
     if (!bankData) return;
@@ -298,7 +305,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen transition-colors duration-500 flex flex-col items-center justify-center p-4" style={{ backgroundColor: bgColor }}>
-      {/* 顶部状态栏 */}
       <div className="fixed top-6 left-6 right-6 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
           {gameState !== 'start' && (
@@ -317,7 +323,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* 设置界面弹窗 */}
       {showSettings && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
@@ -368,16 +373,7 @@ const App: React.FC = () => {
                   onChange={(e) => {
                     const newVoice = e.target.value;
                     setSelectedVoiceURI(newVoice);
-                    localStorage.setItem('preferred_voice', newVoice); // 保存选择
-                    // 立即测试发音
-                    const v = voices.find(v => v.voiceURI === newVoice);
-                    if (v) {
-                      window.speechSynthesis.cancel();
-                      const ut = new SpeechSynthesisUtterance("你好，我的声音好听吗？");
-                      ut.voice = v;
-                      ut.lang = 'zh-CN';
-                      window.speechSynthesis.speak(ut);
-                    }
+                    localStorage.setItem('preferred_voice', newVoice);
                   }}
                 >
                   {voices.map(v => (
@@ -407,11 +403,24 @@ const App: React.FC = () => {
       )}
 
       {gameState === 'playing' && bankData && bankData.wordBank.length > 0 && (
-        <div className="w-full max-w-3xl flex flex-col items-center relative">
-          <button onClick={() => {
-            const target = bankData.wordBank[currentLevel % bankData.wordBank.length];
-            playInstruction(`${target.context}的${target.word}`);
-          }} className="mb-16 w-24 h-24 bg-white rounded-full shadow-lg flex items-center justify-center text-4xl hover:scale-110 active:scale-95 transition-transform">📢</button>
+        <div className="w-full max-w-3xl flex flex-col items-center relative animate-in fade-in slide-in-from-top-4 duration-500">
+          <button 
+            onClick={() => {
+              const target = bankData.wordBank[currentLevel % bankData.wordBank.length];
+              playInstruction(`提示：${target.meaning}`);
+            }} 
+            className="mb-8 px-5 py-2 bg-amber-50 text-amber-600 rounded-full border border-amber-200 text-sm font-bold flex items-center gap-2 hover:bg-amber-100 transition-all shadow-sm hover:scale-105 active:scale-95"
+          >
+            <span className="text-base">💡</span> 看看小提示
+          </button>
+
+          <div className="mb-16">
+            <button onClick={() => {
+              const target = bankData.wordBank[currentLevel % bankData.wordBank.length];
+              playInstruction(`${target.context}的${target.word}`);
+            }} className="w-24 h-24 bg-white rounded-full shadow-lg flex items-center justify-center text-4xl hover:scale-110 active:scale-95 transition-transform" title="重听题目">📢</button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
             {options.map((char, index) => (
               <button key={index} disabled={wrongSelections.includes(char)} onClick={() => handleSelection(char)} className={`aspect-square flex flex-col items-center justify-center text-8xl font-bold rounded-[3rem] transition-all duration-300 ${wrongSelections.includes(char) ? 'bg-slate-200 text-slate-400 scale-90 cursor-not-allowed grayscale' : 'bg-white text-slate-800 shadow-xl hover:-translate-y-2 hover:shadow-2xl active:scale-95'}`} style={{ letterSpacing: '0.1em' }}>
@@ -450,7 +459,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* 底部装饰 */}
       <div className="fixed bottom-0 left-0 w-full h-24 pointer-events-none opacity-20 flex justify-around items-end pb-8">
         {['☁️', '⭐', '🌈', '🎨'].map((emoji, i) => (
           <span key={i} className="text-6xl animate-bounce" style={{ animationDelay: `${i * 0.2}s` }}>{emoji}</span>

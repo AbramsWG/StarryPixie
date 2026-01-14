@@ -1,6 +1,6 @@
 {
-  "name": "星语精灵 - 阅读障碍辅助训练",
-  "description": "一个帮助儿童克服阅读障碍的 AI 交互游戏，通过听音辨字训练音形联结。",
+  "name": "星语精灵 - 阅读辅助训练",
+  "description": "一个帮助儿童的 AI 交互游戏，通过听音辨字训练音形联结。",
   "requestFramePermissions": [
     "microphone"
   ]
