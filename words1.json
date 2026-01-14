@@ -1,0 +1,11 @@
+
+{
+  "wordBank": [
+    { "word": "人", "pinyin": "rén", "context": "大人", "meaning": "a person standing", "distractors": ["八", "入"] },
+    { "word": "日", "pinyin": "rì", "context": "日子", "meaning": "the sun", "distractors": ["目", "口"] },
+    { "word": "山", "pinyin": "shān", "context": "大山", "meaning": "green mountains", "distractors": ["出", "仙"] }
+  ],
+  "distractorInfo": {
+    "八": "数字八", "入": "进入", "目": "目光", "口": "嘴巴", "出": "出去", "仙": "神仙"
+  }
+}

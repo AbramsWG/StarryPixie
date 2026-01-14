@@ -1,0 +1,11 @@
+
+{
+  "wordBank": [
+    { "word": "渴", "pinyin": "kě", "context": "口渴", "meaning": "thirsty person", "distractors": ["喝", "河"] },
+    { "word": "蓝", "pinyin": "lán", "context": "蓝色", "meaning": "blue sky", "distractors": ["篮", "南"] },
+    { "word": "猫", "pinyin": "māo", "context": "小猫", "meaning": "cute cat", "distractors": ["毛", "苗"] }
+  ],
+  "distractorInfo": {
+    "喝": "喝水", "河": "小河", "篮": "篮筐", "南": "南方", "毛": "羽毛", "苗": "禾苗"
+  }
+}

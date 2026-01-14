@@ -1,0 +1,10 @@
+
+{
+  "wordBank": [
+    { "word": "幕", "pinyin": "mù", "context": "开幕", "meaning": "opening curtain", "distractors": ["慕", "墓"] },
+    { "word": "辩", "pinyin": "biàn", "context": "辩论", "meaning": "people debating", "distractors": ["辨", "辫"] }
+  ],
+  "distractorInfo": {
+    "慕": "羡慕", "墓": "墓地", "辨": "辨别", "辫": "辫子"
+  }
+}
