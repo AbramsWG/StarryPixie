@@ -79,7 +79,7 @@ const App: React.FC = () => {
     loadGradeBank(grade);
     const loadVoices = () => {
       const v = window.speechSynthesis.getVoices();
-      const chineseVoices = v.filter(voice => voice.lang.includes('zh'));
+      const chineseVoices = v.filter(voice => voice.lang.includes('zh-CN'));
       setVoices(chineseVoices);
       
       const savedVoice = localStorage.getItem('preferred_voice');
